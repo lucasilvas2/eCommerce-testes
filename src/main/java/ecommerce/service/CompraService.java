@@ -28,7 +28,47 @@ public class CompraService
 
 	private final IEstoqueExternal estoqueExternal;
 	private final IPagamentoExternal pagamentoExternal;
-    private static final int DECIMAL_SCALE = 2;
+    private static final int ESCALA_DECIMAL = 2;
+
+    // Descontos por quantidade de itens do mesmo tipo
+    private static final int QTD_MINIMA_DESCONTO_PEQUENO = 3;
+    private static final int QTD_MAXIMA_DESCONTO_PEQUENO = 4;
+    private static final int QTD_MINIMA_DESCONTO_MEDIO = 5;
+    private static final int QTD_MAXIMA_DESCONTO_MEDIO = 7;
+    private static final int QTD_MINIMA_DESCONTO_GRANDE = 8;
+
+    // Percentuais de desconto por quantidade
+    private static final BigDecimal DESCONTO_PEQUENO = BigDecimal.valueOf(0.05);
+    private static final BigDecimal DESCONTO_MEDIO = BigDecimal.valueOf(0.10);
+    private static final BigDecimal DESCONTO_GRANDE = BigDecimal.valueOf(0.15);
+
+    // Descontos por subtotal
+    private static final BigDecimal LIMITE_SUBTOTAL_MEDIO = BigDecimal.valueOf(500);
+    private static final BigDecimal LIMITE_SUBTOTAL_GRANDE = BigDecimal.valueOf(1000);
+    private static final BigDecimal DESCONTO_SUBTOTAL_MEDIO = BigDecimal.valueOf(0.10);
+    private static final BigDecimal DESCONTO_SUBTOTAL_GRANDE = BigDecimal.valueOf(0.20);
+
+    // Constantes de frete
+    private static final BigDecimal TAXA_FIXA_FRETE = BigDecimal.valueOf(12.00);
+    private static final BigDecimal TAXA_ITEM_FRAGIL = BigDecimal.valueOf(5.00);
+    private static final BigDecimal LIMITE_PESO_PEQUENO = BigDecimal.valueOf(5);
+    private static final BigDecimal LIMITE_PESO_MEDIO = BigDecimal.valueOf(10);
+    private static final BigDecimal LIMITE_PESO_GRANDE = BigDecimal.valueOf(50);
+    private static final BigDecimal TAXA_PESO_PEQUENO = BigDecimal.valueOf(2.00);
+    private static final BigDecimal TAXA_PESO_MEDIO = BigDecimal.valueOf(4.00);
+    private static final BigDecimal TAXA_PESO_GRANDE = BigDecimal.valueOf(7.00);
+
+    // Multiplicadores por região
+    private static final BigDecimal MULT_REGIAO_SUDESTE = BigDecimal.valueOf(1.0);
+    private static final BigDecimal MULT_REGIAO_SUL = BigDecimal.valueOf(1.05);
+    private static final BigDecimal MULT_REGIAO_NORDESTE = BigDecimal.valueOf(1.10);
+    private static final BigDecimal MULT_REGIAO_CENTRO_OESTE = BigDecimal.valueOf(1.20);
+    private static final BigDecimal MULT_REGIAO_NORTE = BigDecimal.valueOf(1.30);
+
+    // Descontos por tipo de cliente
+    private static final BigDecimal DESCONTO_CLIENTE_BRONZE = BigDecimal.valueOf(0.0);
+    private static final BigDecimal DESCONTO_CLIENTE_PRATA = BigDecimal.valueOf(0.5);
+    private static final BigDecimal DESCONTO_CLIENTE_OURO = BigDecimal.valueOf(1.0);
 
 	@Autowired
 	public CompraService(CarrinhoDeComprasService carrinhoService, ClienteService clienteService,
@@ -99,7 +139,7 @@ public class CompraService
 
         return subtotalComDesconto
                 .add(valorFreteComDesconto)
-                .setScale(DECIMAL_SCALE, RoundingMode.HALF_UP);
+                .setScale(ESCALA_DECIMAL, RoundingMode.HALF_UP);
 	}
 
 
@@ -110,105 +150,85 @@ public class CompraService
     }
 
     public BigDecimal descontoPorItemsDoMesmoTipo(CarrinhoDeCompras carrinho) {
-        List<List<ItemCompra>> listaDeItensAgrupadosPorTipo = carrinho.getItens().stream()
+        return carrinho.getItens().stream()
                 .collect(Collectors.groupingBy(item -> item.getProduto().getTipo()))
-                .values()
-                .stream()
-                .filter(lista -> !lista.isEmpty())
-                .toList();
+                .values().stream()
+                .map(itens -> {
+                    int quantidadeItems = itens.stream()
+                            .mapToInt(item -> item.getQuantidade().intValue())
+                            .sum();
+                    BigDecimal subtotal = itens.stream()
+                            .map(item -> item.getProduto().getPreco().multiply(BigDecimal.valueOf(item.getQuantidade())))
+                            .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        final BigDecimal[] subtotal = {BigDecimal.ZERO};
-        listaDeItensAgrupadosPorTipo.forEach(itens -> {
-            //quantidade de items do mesmo tipo
-            int quantidadeItems = itens.stream()
-                    .mapToInt(item -> item.getQuantidade().intValue())
-                    .sum();
-            BigDecimal subtotalItemsMesmoTipo = itens.stream()
-                    .map(item -> item.getProduto().getPreco().multiply(BigDecimal.valueOf(item.getQuantidade())))
-                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+                    BigDecimal desconto = BigDecimal.ZERO;
+                    if (quantidadeItems >= QTD_MINIMA_DESCONTO_PEQUENO && quantidadeItems <= QTD_MAXIMA_DESCONTO_PEQUENO) {
+                        desconto = DESCONTO_PEQUENO;
+                    } else if (quantidadeItems >= QTD_MINIMA_DESCONTO_MEDIO && quantidadeItems <= QTD_MAXIMA_DESCONTO_MEDIO) {
+                        desconto = DESCONTO_MEDIO;
+                    } else if (quantidadeItems >= QTD_MINIMA_DESCONTO_GRANDE) {
+                        desconto = DESCONTO_GRANDE;
+                    }
 
-            BigDecimal desconto = BigDecimal.ZERO;
-            if(quantidadeItems == 3 || quantidadeItems == 4) {
-                desconto = BigDecimal.valueOf(0.05);
-            } else if(quantidadeItems >= 5 && quantidadeItems <= 7) {
-                desconto = BigDecimal.valueOf(0.10);
-            }
-            else if(quantidadeItems >= 8) {
-                desconto = BigDecimal.valueOf(0.15);
-            }
-
-            //soma do subtotal com o desconto aplicado
-            BigDecimal subtotalComDesconto = subtotalItemsMesmoTipo.subtract(
-                    subtotalItemsMesmoTipo.multiply(desconto)
-            );
-            subtotal[0] = subtotal[0].add(subtotalComDesconto);
-
-        });
-
-        return subtotal[0];
+                    return subtotal.subtract(subtotal.multiply(desconto));
+                })
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
     public BigDecimal descontoPorSubtotal(BigDecimal subtotal) {
         BigDecimal desconto = BigDecimal.ZERO;
-        if(subtotal.compareTo(BigDecimal.valueOf(1000)) > 0 ) {
-            desconto = BigDecimal.valueOf(0.20);
-        } else if(subtotal.compareTo(BigDecimal.valueOf(500)) > 0 ) {
-            desconto = BigDecimal.valueOf(0.10);
+        if(subtotal.compareTo(LIMITE_SUBTOTAL_GRANDE) > 0 ) {
+            desconto = DESCONTO_SUBTOTAL_GRANDE;
+        } else if(subtotal.compareTo(LIMITE_SUBTOTAL_MEDIO) > 0 ) {
+            desconto = DESCONTO_SUBTOTAL_MEDIO;
         }
 
         return subtotal.multiply(desconto);
     }
 
     public BigDecimal valorFrete(CarrinhoDeCompras carrinho, Regiao regiao) {
-        BigDecimal valorFrete;
-        BigDecimal taxaFixa = new BigDecimal("12.00");
-
         BigDecimal pesoTotal = carrinho.getItens().stream()
                 .map(item -> item.getProduto().pesoTributavel().multiply(BigDecimal.valueOf(item.getQuantidade())))
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        int quantidadeItensFragil = carrinho.getItens().stream()
-                .filter(item -> item.getProduto().isFragil())
-                .mapToInt(item -> item.getQuantidade().intValue())
-                .sum();
-        BigDecimal taxaFragil = BigDecimal.valueOf(5.00).multiply(BigDecimal.valueOf(quantidadeItensFragil));
+        BigDecimal taxaFragil = TAXA_ITEM_FRAGIL.multiply(
+                BigDecimal.valueOf(carrinho.getItens().stream()
+                        .filter(item -> item.getProduto().isFragil())
+                        .mapToInt(item -> item.getQuantidade().intValue())
+                        .sum())
+        );
 
-        if (pesoTotal.compareTo(BigDecimal.valueOf(5)) <= 0) {
-            return BigDecimal.ZERO.add(taxaFragil);
+        if (pesoTotal.compareTo(LIMITE_PESO_PEQUENO) <= 0) {
+            return taxaFragil;
         }
 
         BigDecimal baseRate;
-        if (pesoTotal.compareTo(BigDecimal.valueOf(5)) > 0 && pesoTotal.compareTo(BigDecimal.valueOf(10)) <= 0) {
-            baseRate = BigDecimal.valueOf(2.00);
-        } else if (pesoTotal.compareTo(BigDecimal.valueOf(10)) > 0 && pesoTotal.compareTo(BigDecimal.valueOf(50)) <= 0) {
-            baseRate = BigDecimal.valueOf(4.00);
+        if (pesoTotal.compareTo(LIMITE_PESO_PEQUENO) > 0 && pesoTotal.compareTo(LIMITE_PESO_MEDIO) <= 0) {
+            baseRate = TAXA_PESO_PEQUENO;
+        } else if (pesoTotal.compareTo(LIMITE_PESO_MEDIO) > 0 && pesoTotal.compareTo(LIMITE_PESO_GRANDE) <= 0) {
+            baseRate = TAXA_PESO_MEDIO;
         } else {
-            // fallback for > 50 (adjust as needed)
-            baseRate = BigDecimal.valueOf(7.00);
+            baseRate = TAXA_PESO_GRANDE;
         }
 
         BigDecimal regionMultiplier = switch (regiao) {
-            case SUDESTE -> BigDecimal.valueOf(1.0);
-            case SUL -> BigDecimal.valueOf(1.05);
-            case NORDESTE -> BigDecimal.valueOf(1.10);
-            case CENTRO_OESTE -> BigDecimal.valueOf(1.20);
-            case NORTE -> BigDecimal.valueOf(1.30);
+            case SUDESTE -> MULT_REGIAO_SUDESTE;
+            case SUL -> MULT_REGIAO_SUL;
+            case NORDESTE -> MULT_REGIAO_NORDESTE;
+            case CENTRO_OESTE -> MULT_REGIAO_CENTRO_OESTE;
+            case NORTE -> MULT_REGIAO_NORTE;
         };
 
-        return pesoTotal.multiply(baseRate).multiply(regionMultiplier).add(taxaFixa).add(taxaFragil);
+        return pesoTotal.multiply(baseRate).multiply(regionMultiplier).add(TAXA_FIXA_FRETE).add(taxaFragil);
     }
 
 
 
     public BigDecimal descontoFretePorTipoCliente(TipoCliente tipoCliente) {
-        BigDecimal desconto = BigDecimal.ZERO;
-
-        switch (tipoCliente) {
-            case BRONZE -> desconto = BigDecimal.valueOf(0.0);
-            case PRATA -> desconto = BigDecimal.valueOf(0.5);
-            case OURO -> desconto = BigDecimal.valueOf(1.0);
-        }
-
-        return desconto;
+        return switch (tipoCliente) {
+            case BRONZE -> DESCONTO_CLIENTE_BRONZE;
+            case PRATA -> DESCONTO_CLIENTE_PRATA;
+            case OURO -> DESCONTO_CLIENTE_OURO;
+        };
     }
 }

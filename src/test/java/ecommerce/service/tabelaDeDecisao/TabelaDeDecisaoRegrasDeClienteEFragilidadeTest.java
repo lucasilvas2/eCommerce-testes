@@ -28,7 +28,7 @@ public class TabelaDeDecisaoRegrasDeClienteEFragilidadeTest {
     }
 
     @Test
-    @DisplayName("R21: Cliente Bronze não tem desconto no frete")
+    @DisplayName("R21: Tabela de Decisão - Cliente Bronze não tem desconto no frete")
     void calcularCustoTotal_QuandoClienteBronze_NaoTemDescontoNoFrete() {
         // Arrange
         cliente.setTipo(TipoCliente.BRONZE);
@@ -47,7 +47,7 @@ public class TabelaDeDecisaoRegrasDeClienteEFragilidadeTest {
     }
 
     @Test
-    @DisplayName("R22: Cliente Prata tem 50% de desconto no frete")
+    @DisplayName("R22: Tabela de Decisão - Cliente Prata tem 50% de desconto no frete")
     void calcularCustoTotal_QuandoClientePrata_Tem50PorcentoDescontoNoFrete() {
         // Arrange
         cliente.setTipo(TipoCliente.PRATA);
@@ -101,7 +101,7 @@ public class TabelaDeDecisaoRegrasDeClienteEFragilidadeTest {
         // Assert
         assertThat(resultado).isEqualByComparingTo("124.00");
     }
-
+ 
     @Test
     @DisplayName("R25: Produto frágil aplica taxa adicional")
     void calcularCustoTotal_QuandoProdutoFragil_AplicaTaxaAdicional() {

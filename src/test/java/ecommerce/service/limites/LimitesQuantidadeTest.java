@@ -29,23 +29,25 @@ public class LimitesQuantidadeTest {
     }
 
     @Test
-    @DisplayName("TC-VL23: Quantidade -1 (Limite 0 L-1) deve lançar IllegalArgumentException")
+    @DisplayName("TC-VL23: Análise de Limite - Quantidade -1 (Limite 0 L-1)")
     void deveLancarExcecaoQuandoQuantidadeNegativa() {
+        // Arrange
         produto = new Produto(1L, "Test", "Test Description", new BigDecimal("100.00"),
                 new BigDecimal("1.0"), new BigDecimal("10.0"), new BigDecimal("10.0"),
                 new BigDecimal("10.0"), false, TipoProduto.ELETRONICO);
 
+        // Act & Assert
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
             new ItemCompra(1L, produto, -1L);
         });
 
         assertThat(exception.getMessage())
-                .as("Mensagem de erro para quantidade negativa")
+                .as("Validação da mensagem de erro para quantidade negativa")
                 .contains("Quantidade do item deve ser maior que zero.");
     }
 
     @Test
-    @DisplayName("TC-VL24: Quantidade 0 (Limite 0 L) deve lançar IllegalArgumentException")
+    @DisplayName("TC-VL24: Análise de Limite - Quantidade 0 (Limite 0 L)")
     void deveLancarExcecaoQuandoQuantidadeZero() {
         produto = new Produto(1L, "Test", "Test Description", new BigDecimal("100.00"),
                 new BigDecimal("1.0"), new BigDecimal("10.0"), new BigDecimal("10.0"),

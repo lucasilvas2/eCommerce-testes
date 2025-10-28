@@ -48,7 +48,9 @@ public class ParticoesEquivalenciaTest {
         carrinho.setItens(Collections.singletonList(item));
 
         BigDecimal custoTotal = service.calcularCustoTotal(carrinho, cliente);
-        assertThat(custoTotal).as("Custo Total da Compra").isEqualByComparingTo(new BigDecimal(expected));
+        assertThat(custoTotal).as("Custo Total da Compra")
+                .as("Custo Total da Compra")
+                .isEqualByComparingTo(new BigDecimal(expected));
     }
 
     @ParameterizedTest
@@ -251,10 +253,10 @@ public class ParticoesEquivalenciaTest {
 
     @ParameterizedTest(name = "price={0}, qty={1}, peso={2}, comprimento={3}, largura={4}, altura={5}, regiao={6} -> expected={7}")
     @CsvSource({
-            "50.00, 3, 1.00, 0.5, 1.0, 2.0, SUDESTE, 142.50",
-            "50.00, 2, 4.00, 0.5, 1.0, 2.0, SUL, 128.80",
-            "50.00, 2, 4.50, 0.5, 1.0, 2.0, NORDESTE, 131.80",
-            "25.00, 1, 10.00, 0.5, 1.0, 2.0, CENTRO_OESTE, 61.00",
+            "50.00, 3, 12.00, 0.5, 1.0, 2.0, SUDESTE, 298.50",
+            "50.00, 2, 12.00, 0.5, 1.0, 2.0, SUL, 212.80",
+            "50.00, 2, 12.00, 0.5, 1.0, 2.0, NORDESTE, 217.60",
+            "25.00, 1, 12.00, 0.5, 1.0, 2.0, CENTRO_OESTE, 94.60",
             "50.00, 2, 12.00, 0.5, 1.0, 2.0, NORTE, 236.80",
     })
     @DisplayName("Test Calcular Custo Total com Valor do Frete por Região - Partições de Equivalência")
@@ -427,9 +429,20 @@ public class ParticoesEquivalenciaTest {
         ItemCompra item = new ItemCompra(1L, produto, 1L);
         carrinho.setItens(Collections.singletonList(item));
 
-        Cliente cliente = new Cliente();
-        Assertions.assertThrowsExactly(NullPointerException.class, () -> {
-            service.calcularCustoTotal(carrinho, cliente);
+        Assertions.assertThrowsExactly(IllegalArgumentException.class, () -> {
+            service.calcularCustoTotal(carrinho, null);
+        });
+    }
+
+    @Test
+    @DisplayName("Test Carinho Nulo - Partições de Equivalência")
+    public void testCarrinhoVazio() {
+        CompraService service = new CompraService(null, null, null, null);
+
+        Cliente cliente = new Cliente(1L, "Cliente Teste", Regiao.SUDESTE, TipoCliente.BRONZE);
+
+        Assertions.assertThrowsExactly(IllegalArgumentException.class, () -> {
+            service.calcularCustoTotal(null, cliente);
         });
     }
 
@@ -449,11 +462,8 @@ public class ParticoesEquivalenciaTest {
 
     @ParameterizedTest(name = "pesoFisico={0}, dimensoes={1}x{2}x{3} -> expected={4}")
     @CsvSource({
-            // Peso físico > Peso cúbico
             "10.00, 1.0, 1.0, 1.0, 192.00",
-            // Peso cúbico > Peso físico
             "1.00, 3.0, 3.0, 3.0, 100.00",
-            // peso cúbico = peso físico
             "4.5, 30.0, 30.0, 30.0, 130.00"
     })
     @DisplayName("Test Calcular Custo Total - Peso Físico vs Peso Cúbico - Partições de Equivalência")

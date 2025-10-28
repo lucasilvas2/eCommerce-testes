@@ -208,14 +208,14 @@ public class CompraService
                         .sum())
         );
 
-        if (pesoTotal.compareTo(LIMITE_PESO_PEQUENO) <= 0) {
-            return taxaFragil;
-        }
+
 
         BigDecimal baseRate;
-        if (pesoTotal.compareTo(LIMITE_PESO_PEQUENO) > 0 && pesoTotal.compareTo(LIMITE_PESO_MEDIO) <= 0) {
+        if (pesoTotal.compareTo(LIMITE_PESO_PEQUENO) <= 0) {
+            return taxaFragil;
+        } else if (pesoTotal.compareTo(LIMITE_PESO_MEDIO) <= 0) {
             baseRate = TAXA_PESO_PEQUENO;
-        } else if (pesoTotal.compareTo(LIMITE_PESO_MEDIO) > 0 && pesoTotal.compareTo(LIMITE_PESO_GRANDE) <= 0) {
+        } else if (pesoTotal.compareTo(LIMITE_PESO_GRANDE) <= 0) {
             baseRate = TAXA_PESO_MEDIO;
         } else {
             baseRate = TAXA_PESO_GRANDE;

@@ -118,10 +118,14 @@ public class CompraService
 		CompraDTO compraDTO = new CompraDTO(true, pagamento.transacaoId(), "Compra finalizada com sucesso.");
 
 		return compraDTO;
-	} 
+	}
 
 	public BigDecimal calcularCustoTotal(CarrinhoDeCompras carrinho, Cliente cliente)
 	{
+        if (carrinho == null || cliente == null){
+            throw new IllegalArgumentException("Carrinho ou cliente não podem ser nulos.");
+        }
+
 		BigDecimal subtotal = subtotal(carrinho);
 
         BigDecimal descontoItemsMesmoTipo = descontoPorItemsDoMesmoTipo(carrinho);
@@ -161,18 +165,24 @@ public class CompraService
                             .map(item -> item.getProduto().getPreco().multiply(BigDecimal.valueOf(item.getQuantidade())))
                             .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-                    BigDecimal desconto = BigDecimal.ZERO;
-                    if (quantidadeItems >= QTD_MINIMA_DESCONTO_PEQUENO && quantidadeItems <= QTD_MAXIMA_DESCONTO_PEQUENO) {
-                        desconto = DESCONTO_PEQUENO;
-                    } else if (quantidadeItems >= QTD_MINIMA_DESCONTO_MEDIO && quantidadeItems <= QTD_MAXIMA_DESCONTO_MEDIO) {
-                        desconto = DESCONTO_MEDIO;
-                    } else if (quantidadeItems >= QTD_MINIMA_DESCONTO_GRANDE) {
-                        desconto = DESCONTO_GRANDE;
-                    }
+                    BigDecimal porcentagemDesconto = retornaPorcentagemDescontoPorItemDoMesmoTipo(quantidadeItems);
 
-                    return subtotal.subtract(subtotal.multiply(desconto));
+                    return subtotal.subtract(subtotal.multiply(porcentagemDesconto));
                 })
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+    public BigDecimal retornaPorcentagemDescontoPorItemDoMesmoTipo(int quantidadeItems) {
+        if (quantidadeItems >= QTD_MINIMA_DESCONTO_PEQUENO && quantidadeItems <= QTD_MAXIMA_DESCONTO_PEQUENO) {
+            return DESCONTO_PEQUENO;
+        }
+        if (quantidadeItems >= QTD_MINIMA_DESCONTO_MEDIO && quantidadeItems <= QTD_MAXIMA_DESCONTO_MEDIO) {
+            return DESCONTO_MEDIO;
+        }
+        if (quantidadeItems >= QTD_MINIMA_DESCONTO_GRANDE) {
+            return DESCONTO_GRANDE;
+        }
+        return BigDecimal.ZERO;
     }
 
     public BigDecimal descontoPorSubtotal(BigDecimal subtotal) {
@@ -221,8 +231,6 @@ public class CompraService
 
         return pesoTotal.multiply(baseRate).multiply(regionMultiplier).add(TAXA_FIXA_FRETE).add(taxaFragil);
     }
-
-
 
     public BigDecimal descontoFretePorTipoCliente(TipoCliente tipoCliente) {
         return switch (tipoCliente) {

@@ -76,7 +76,7 @@ public class ParticoesEquivalenciaTest {
                 "Produto 1",
                 "Descricao",
                 new BigDecimal(price1),
-                new BigDecimal("2.0"),
+                new BigDecimal("6.0"),
                 new BigDecimal("10.0"),
                 new BigDecimal("5.0"),
                 new BigDecimal("3.0"),
@@ -91,7 +91,7 @@ public class ParticoesEquivalenciaTest {
                 "Produto 2",
                 "Descricao",
                 new BigDecimal(price2),
-                new BigDecimal("1.0"),
+                new BigDecimal("15.0"),
                 new BigDecimal("5.0"),
                 new BigDecimal("2.0"),
                 new BigDecimal("1.0"),
@@ -106,7 +106,7 @@ public class ParticoesEquivalenciaTest {
                 "Produto 3",
                 "Descricao",
                 new BigDecimal(price3),
-                new BigDecimal("1.0"),
+                new BigDecimal("51.0"),
                 new BigDecimal("5.0"),
                 new BigDecimal("2.0"),
                 new BigDecimal("1.0"),
@@ -126,6 +126,7 @@ public class ParticoesEquivalenciaTest {
             "200.00, 2, 400.00",
             "100.00, 6, 540.00",
             "525.00, 2, 840.00",
+            "200.00, 10, 1480.00",
     })
     @DisplayName("Test Calcular Custo Total com Desconto por Subtotal - Partições de Equivalência")
     public void testCalcularCustoTotalDescontoSubtotalParameterized(String unitPrice, long qty, String expected) {

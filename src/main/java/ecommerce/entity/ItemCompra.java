@@ -67,7 +67,7 @@ public class ItemCompra
 	public void setQuantidade(Long quantidade)
 	{
         if (quantidade == null || quantidade <= 0) {
-            throw new IllegalArgumentException("Quantidade não pode ser negativa.");
+            throw new IllegalArgumentException("Quantidade do item deve ser maior que zero.");
         }
 		this.quantidade = quantidade;
 	}

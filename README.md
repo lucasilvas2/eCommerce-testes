@@ -383,63 +383,104 @@ O grafo de fluxo de controle do método `calcularCustoTotal` é apresentado abai
  |
  ↓
 [2] Validar entradas (cliente e carrinho)
- |
+ |------→ [Exceção] (se nulo)
  ↓
 [3] Calcular subtotal
  |
  ↓
-[4] Calcular desconto por itens do mesmo tipo
+[4] Verificar quantidade de itens do mesmo tipo
+ |---------------------|-------------------|
+ ↓                     ↓                   ↓
+[5] Qtd >= 8          [6] Qtd >= 5        [7] Qtd >= 3
+ | (15% desconto)      | (10% desconto)    | (5% desconto)
+ |                     |                   |
+ |---------------------|-------------------|
+ ↓
+[8] Verificar valor subtotal
+ |---------------------|
+ ↓                     ↓
+[9] Valor > 1000      [10] Valor > 500
+ | (20% desconto)      | (10% desconto)
+ |---------------------|
+ ↓
+[11] Calcular subtotal com descontos
  |
  ↓
-[5] Verificar valor do subtotal → [6] Aplicar desconto por valor
- |                                 |
- |                                 ↓
- |                               [7] Subtrair desconto do subtotal
- |                                 |
- ↓                                |
-[8] Calcular valor do frete        |
- |                                |
- ↓                                |
-[9] Verificar tipo do cliente      |
- |                                |
- ↓                                |
-[10] Aplicar desconto no frete     |
- |                                |
- ↓                                |
-[11] Somar subtotal com frete ←────┘
+[12] Verificar peso total
+ |---------------------|-------------------|
+ ↓                     ↓                   ↓
+[13] Peso > 50        [14] Peso > 10      [15] Peso > 5
+ | (R$7/kg)           | (R$4/kg)          | (R$2/kg)
+ |---------------------|-------------------|
+ ↓
+[16] Verificar item frágil
+ |---------------→ [17] Adicionar taxa especial (se frágil)
+ ↓
+[18] Verificar região
+ |---------------------|-------------------|-------------------|
+ ↓                     ↓                   ↓                   ↓
+[19] SE (1.0x)        [20] S (1.05x)     [21] NE (1.1x)     [22] CO (1.2x)
+ |                     |                   |                   |
+ |---------------------|-------------------|-------------------|
+ ↓
+[23] Verificar tipo cliente
+ |---------------------|-------------------|
+ ↓                     ↓                   ↓
+[24] OURO             [25] PRATA          [26] BRONZE
+ | (100% desc)         | (50% desc)        | (0% desc)
+ |---------------------|-------------------|
+ ↓
+[27] Calcular frete final
  |
  ↓
-[12] Retornar total
+[28] Somar subtotal com frete
+ |
+ ↓
+[29] Retornar total
 ```
 
 ### Cálculo da Complexidade Ciclomática (V(G))
 
 A complexidade ciclomática pode ser calculada usando a fórmula:
-V(G) = E - N + 2, onde:
+V(G) = E - N + 2P, onde:
 - E = número de arestas
 - N = número de nós
+- P = número de componentes conectados (normalmente 1 para um único método)
 
 No grafo acima:
-- Número de nós (N) = 12
-- Número de arestas (E) = 13
+- Número de nós (N) = 29 (incluindo todos os pontos de decisão e caminhos alternativos)
+- Número de arestas (E) = 38 (incluindo todas as conexões entre nós)
+- Número de componentes conectados (P) = 1
 
 Portanto:
-V(G) = 13 - 12 + 2 = 3
+V(G) = E - N + 2P
+V(G) = 38 - 29 + 2(1)
+V(G) = 11
 
-Alternativamente, podemos calcular usando o número de decisões:
-- Decisão 1: Validação de entrada (cliente/carrinho nulo)
-- Decisão 2: Verificação de valor para desconto por subtotal
-- Decisão 3: Verificação do tipo de cliente para desconto no frete
-
-O que confirma V(G) = 3
+Este valor mais alto de complexidade ciclomática (11) reflete melhor a realidade do código, considerando todos os pontos de decisão:
+1. Validação de entrada (cliente/carrinho nulo)
+2. Verificações de quantidade de itens (3 pontos de decisão: >=8, >=5, >=3)
+3. Verificações de valor subtotal (2 pontos de decisão: >1000, >500)
+4. Verificações de peso (3 pontos de decisão: >50, >10, >5)
+5. Verificação de item frágil
+6. Verificação de região (4 possíveis caminhos)
+7. Verificação de tipo de cliente (3 tipos diferentes)
 
 ### Número Mínimo de Casos de Teste Independentes
 
-Com base na complexidade ciclomática V(G) = 3, precisamos de no mínimo 3 casos de teste independentes para cobrir todos os caminhos básicos do código. Estes casos devem cobrir:
+Com base na complexidade ciclomática V(G) = 11, precisamos de no mínimo 11 casos de teste independentes para cobrir todos os caminhos básicos do código. Estes casos devem cobrir:
 
-1. Caminho feliz: cliente válido, com desconto por subtotal e tipo cliente ouro
-2. Caminho alternativo: cliente válido, sem desconto por subtotal e tipo cliente bronze
-3. Caminho de erro: cliente ou carrinho inválido (nulo)
+1. Caminho de erro: cliente ou carrinho inválido (nulo)
+2. Quantidade de itens >= 8 (desconto 15%)
+3. Quantidade de itens >= 5 e < 8 (desconto 10%)
+4. Quantidade de itens >= 3 e < 5 (desconto 5%)
+5. Subtotal > 1000 (desconto 20%)
+6. Subtotal > 500 e <= 1000 (desconto 10%)
+7. Peso > 50 (taxa R$7/kg)
+8. Peso > 10 e <= 50 (taxa R$4/kg)
+9. Peso > 5 e <= 10 (taxa R$2/kg)
+10. Item frágil (taxa especial)
+11. Combinações de tipo de cliente e região diferentes
 
-Na prática, implementamos mais casos de teste para garantir uma cobertura adequada de todas as combinações de condições, conforme demonstrado na análise MC/DC anterior.
+Na prática, para garantir uma cobertura adequada, precisamos implementar ainda mais casos de teste para cobrir todas as combinações possíveis de condições, conforme demonstrado na análise MC/DC anterior. Isso é especialmente importante devido às múltiplas condições independentes que podem ocorrer simultaneamente.
 
